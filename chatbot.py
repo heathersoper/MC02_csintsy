@@ -360,7 +360,6 @@ def handle_question(prompt):
         if match:
             query = query_fn(match.groups())
             query = query.replace('anyone', 'X')
-            print("DEBUG: Querying:", query)
             try:
                 # If the query contains a variable (e.g., X), check for any result
                 if 'X' in query:
