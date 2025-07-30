@@ -170,13 +170,15 @@ def handle_statement(prompt):
         # "X is a sister of Y."
         (r"(\w+) is a sister of (\w+)\.", lambda m: [
             f"is_female({m[0].lower()})",
-            *copy_parents_if_known(m[0].lower(), m[1].lower())
+            # Sibling relationship will be derived if they share parents
+            ("copy_parents", m[0].lower(), m[1].lower())
         ]),
 
         # "X is a brother of Y."
         (r"(\w+) is a brother of (\w+)\.", lambda m: [
             f"is_male({m[0].lower()})",
-            *copy_parents_if_known(m[0].lower(), m[1].lower())
+            ("copy_parents", m[0].lower(), m[1].lower()),
+            ("copy_parents", m[1].lower(), m[0].lower())
         ]),
 
         # "X and Y are siblings."
@@ -220,6 +222,11 @@ def handle_statement(prompt):
             f"parent_of({m[0].lower()}, {m[2].lower()})",
             f"parent_of({m[1].lower()}, {m[2].lower()})"
         ]),
+        # "X is a brother of Y."
+        (r"(\w+) is a brother of (\w+)\.", lambda m: [
+            f"is_male({m[0].lower()})"
+            # Sibling relationship will be derived if they share parents
+        ]),
     ]
 
     for pattern, action in patterns:
@@ -240,11 +247,29 @@ def handle_statement(prompt):
                 
                 # Flatten the list in case some actions return nested lists
                 flattened_facts = []
+                copy_parent_ops = []
                 for fact in new_facts:
                     if isinstance(fact, list):
-                        flattened_facts.extend(fact)
+                        for subfact in fact:
+                            if isinstance(subfact, tuple) and subfact[0] == "copy_parents":
+                                copy_parent_ops.append(subfact)
+                            else:
+                                flattened_facts.append(subfact)
+                    elif isinstance(fact, tuple) and fact[0] == "copy_parents":
+                        copy_parent_ops.append(fact)
                     else:
                         flattened_facts.append(fact)
+                # For each copy_parents operation, assert parent_of for all parents of sibling
+                for op in copy_parent_ops:
+                    _, new_sibling, known_sibling = op
+                    try:
+                        parents = list(prolog.query(f"parent_of(P, {known_sibling})"))
+                        for p in parents:
+                            pfact = f"parent_of({p['P']}, {new_sibling})"
+                            if pfact not in flattened_facts:
+                                flattened_facts.append(pfact)
+                    except Exception as e:
+                        print(f"Error inferring parents for siblings: {e}")
                 
                 # Check consistency before applying facts
                 is_consistent, error_msg = check_consistency(flattened_facts)
@@ -279,12 +304,33 @@ def handle_question(prompt):
         (r"Is (\w+) a daughter of (\w+)\?", lambda m: f"parent_of({m[1].lower()}, {m[0].lower()}), is_female({m[0].lower()})"),
         (r"Is (\w+) a son of (\w+)\?", lambda m: f"parent_of({m[1].lower()}, {m[0].lower()}), is_male({m[0].lower()})"),
         (r"Is (\w+) a child of (\w+)\?", lambda m: f"parent_of({m[1].lower()}, {m[0].lower()})"),
+        (r"Is (\w+) a parent of (\w+)\?", lambda m: f"parent_of({m[0].lower()}, {m[1].lower()})"),
         (r"Is (\w+) an uncle of (\w+)\?", lambda m: f"uncle_of({m[0].lower()}, {m[1].lower()})"),
         (r"Is (\w+) an aunt of (\w+)\?", lambda m: f"aunt_of({m[0].lower()}, {m[1].lower()})"),
+        (r"Is (\w+) a niece of (\w+)\?", lambda m: f"niece_of({m[1].lower()}, {m[0].lower()}), is_female({m[0].lower()})"),
+        (r"Is (\w+) a nephew of (\w+)\?", lambda m: f"nephew_of({m[1].lower()}, {m[0].lower()}), is_male({m[0].lower()})"),
         (r"Is (\w+) a grandmother of (\w+)\?", lambda m: f"grandmother_of({m[0].lower()}, {m[1].lower()})"),
         (r"Is (\w+) a grandfather of (\w+)\?", lambda m: f"grandfather_of({m[0].lower()}, {m[1].lower()})"),
+        (r"Is (\w+) a grandparent of (\w+)\?", lambda m: f"grandparent_of({m[0].lower()}, {m[1].lower()})"),
         (r"Is (\w+) male\?", lambda m: f"is_male({m[0].lower()})"),
         (r"Is (\w+) female\?", lambda m: f"is_female({m[0].lower()})"),
+        (r"Is (\w+) a cousin of (\w+)\?", lambda m: f"cousin_of({m[0].lower()}, {m[1].lower()})"),
+        (r"Is (\w+) an ancestor of (\w+)\?", lambda m: f"ancestor_of({m[0].lower()}, {m[1].lower()})"),
+        (r"Is (\w+) a descendant of (\w+)\?", lambda m: f"descendant_of({m[0].lower()}, {m[1].lower()})"),
+        (r"Is (\w+) an uncle of anyone\?", lambda m: f"uncle_of({m[0].lower()}, X)"),
+        (r"Is (\w+) an aunt of anyone\?", lambda m: f"aunt_of({m[0].lower()}, X)"),
+        (r"Is (\w+) a cousin of anyone\?", lambda m: f"cousin_of({m[0].lower()}, X)"),
+        (r"Is (\w+) a parent of anyone\?", lambda m: f"parent_of({m[0].lower()}, X)"),
+        (r"Is (\w+) a brother of anyone\?", lambda m: f"brother_of({m[0].lower()}, X)"),
+        (r"Is (\w+) a sister of anyone\?", lambda m: f"sister_of({m[0].lower()}, X)"),
+        (r"Is (\w+) a child of anyone\?", lambda m: f"child_of({m[0].lower()}, X)"),
+        (r"Is (\w+) a grandparent of anyone\?", lambda m: f"grandparent_of({m[0].lower()}, X)"),
+        (r"Is (\w+) a grandmother of anyone\?", lambda m: f"grandmother_of({m[0].lower()}, X)"),
+        (r"Is (\w+) a grandfather of anyone\?", lambda m: f"grandfather_of({m[0].lower()}, X)"),
+        (r"Is (\w+) a niece of anyone\?", lambda m: f"niece_of({m[0].lower()}, X)"),
+        (r"Is (\w+) a nephew of anyone\?", lambda m: f"nephew_of({m[0].lower()}, X)"),
+        (r"Is (\w+) an ancestor of anyone\?", lambda m: f"ancestor_of({m[0].lower()}, X)"),
+        (r"Is (\w+) a descendant of anyone\?", lambda m: f"descendant_of({m[0].lower()}, X)"),
     ]
 
     # Wh- questions
@@ -303,6 +349,9 @@ def handle_question(prompt):
         (r"Who are the grandparents of (\w+)\?", lambda m: f"grandparent_of(X, {m[0].lower()})"),
         (r"Who are the aunts of (\w+)\?", lambda m: f"aunt_of(X, {m[0].lower()})"),
         (r"Who are the uncles of (\w+)\?", lambda m: f"uncle_of(X, {m[0].lower()})"),
+        (r"Who are the cousins of (\w+)\?", lambda m: f"cousin_of(X, {m[0].lower()})"),
+        (r"Who are the ancestors of (\w+)\?", lambda m: f"ancestor_of(X, {m[0].lower()})"),
+        (r"Who are the descendants of (\w+)\?", lambda m: f"descendant_of(X, {m[0].lower()})"),
     ]
 
     # Try yes/no questions
@@ -310,9 +359,16 @@ def handle_question(prompt):
         match = re.fullmatch(pattern, prompt, re.IGNORECASE)
         if match:
             query = query_fn(match.groups())
+            query = query.replace('anyone', 'X')
+            print("DEBUG: Querying:", query)
             try:
-                result = list(prolog.query(query, maxresult=1))
-                return "Yes." if result else "No."
+                # If the query contains a variable (e.g., X), check for any result
+                if 'X' in query:
+                    result = list(prolog.query(query, maxresult=1))
+                    return "Yes." if result else "No."
+                else:
+                    result = list(prolog.query(query, maxresult=1))
+                    return "Yes." if result else "No."
             except Exception as e:
                 return f"Error querying: {e}"
 
@@ -335,14 +391,6 @@ def handle_question(prompt):
                 return f"Error querying: {e}"
 
     return "Sorry, I don't understand the question."
-
-def copy_parents_if_known(child_to_add, known_sibling):
-    results = list(prolog.query(f"parent_of(Parent, {known_sibling})"))
-    facts = []
-    for result in results:
-        parent = result["Parent"]
-        facts.append(f"parent_of({parent}, {child_to_add})")
-    return facts
 
 def show_help():
     """Display available commands and examples."""

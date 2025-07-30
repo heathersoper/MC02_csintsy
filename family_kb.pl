@@ -71,3 +71,4 @@ ancestor_of(X, Y) :- parent_of(X, Z), ancestor_of(Z, Y).
 
 % Descendant relationship (inverse of ancestor)
 descendant_of(X, Y) :- ancestor_of(Y, X).
+
