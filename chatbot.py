@@ -169,8 +169,14 @@ def handle_statement(prompt):
 
         # "X is a sister of Y."
         (r"(\w+) is a sister of (\w+)\.", lambda m: [
-            f"is_female({m[0].lower()})"
-            # Note: sibling relationship will be derived if they share parents
+            f"is_female({m[0].lower()})",
+            *copy_parents_if_known(m[0].lower(), m[1].lower())
+        ]),
+
+        # "X is a brother of Y."
+        (r"(\w+) is a brother of (\w+)\.", lambda m: [
+            f"is_male({m[0].lower()})",
+            *copy_parents_if_known(m[0].lower(), m[1].lower())
         ]),
 
         # "X and Y are siblings."
@@ -329,6 +335,14 @@ def handle_question(prompt):
                 return f"Error querying: {e}"
 
     return "Sorry, I don't understand the question."
+
+def copy_parents_if_known(child_to_add, known_sibling):
+    results = list(prolog.query(f"parent_of(Parent, {known_sibling})"))
+    facts = []
+    for result in results:
+        parent = result["Parent"]
+        facts.append(f"parent_of({parent}, {child_to_add})")
+    return facts
 
 def show_help():
     """Display available commands and examples."""
