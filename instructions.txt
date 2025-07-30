@@ -1,0 +1,139 @@
+# Family Relationship Chatbot
+
+## Overview
+This is an intelligent chatbot that can learn about family relationships and answer questions about them using natural language. It uses Prolog for logical reasoning and includes consistency checking to prevent impossible relationships.
+
+## Prerequisites
+
+### Required Software
+1. **Python 3.7 or higher**
+   - Download from: https://www.python.org/downloads/
+   - Make sure to add Python to your system PATH during installation
+
+2. **SWI-Prolog**
+   - Download from: https://www.swi-prolog.org/download/stable
+   - This is required for the PySwip library to work
+   - **Important**: Make sure SWI-Prolog is added to your system PATH
+
+### Required Python Package
+Install the PySwip library using pip:
+```bash
+pip install pyswip
+```
+
+## Installation
+
+1. **Download the files**
+   - Save `family_chatbot.py` (the main Python file)
+   - Save `family_kb.pl` (the Prolog knowledge base)
+   - Both files must be in the same directory
+
+## Running the Program
+
+1. **Start the chatbot**
+   ```bash
+   python family_chatbot.py
+   ```
+## How to Use
+
+### Available Commands
+- `help` - Show examples and usage instructions
+- `facts` - Display all currently known family relationships
+- `exit` - Quit the program
+
+### Teaching the Chatbot (Statements end with '.')
+You can teach the chatbot about family relationships using natural language:
+
+**Parent-Child Relationships:**
+```
+> John is the father of Mary.
+> Sarah is the mother of Tom.
+> Mike is the son of Robert.
+> Lisa is the daughter of Anna.
+> Bob is a child of Susan.
+```
+
+**Multiple Relationships:**
+```
+> John and Sarah are the parents of Tom.
+> Alice, Bob, and Carol are children of David.
+```
+
+**Extended Family:**
+```
+> George is the grandfather of Tim.
+> Helen is the grandmother of Sue.
+> Uncle Joe is an uncle of Peter.
+> Aunt Mary is an aunt of Lucy.
+```
+
+### Asking Questions (Questions end with '?')
+
+**Yes/No Questions:**
+```
+> Is John the father of Mary?
+> Are Tom and Lisa siblings?
+> Is Mike a brother of Sarah?
+> Is Anna the grandmother of Tim?
+```
+
+**Who Questions:**
+```
+> Who is the father of Mary?
+> Who are the children of Sarah?
+> Who are the siblings of Tom?
+> Who are the grandparents of Lisa?
+```
+
+## Consistency Checking
+
+The chatbot automatically prevents impossible relationships:
+
+**Examples of what it will reject:**
+- Circular relationships: "A is the father of B" → "B is the father of C" → "C is the father of A"
+- Gender conflicts: "Mark is male" → "Mark is a daughter of Ann"
+- Self-parenthood: "John is the father of John"
+- Role mismatches: "Sarah is female" → "Sarah is the father of Tom"
+
+## Example Session
+
+```
+Welcome to the Family Chatbot!
+I can learn about family relationships and answer questions about them.
+Type 'help' for examples, or 'exit' to quit.
+
+> John is the father of Mary.
+Okay, I learned something new.
+
+> Sarah is the mother of Mary.
+Okay, I learned something new.
+
+> Who are the parents of Mary?
+John, Sarah.
+
+> Is Mary a daughter of John?
+Yes.
+
+> John is a daughter of someone.
+That's impossible! John cannot be a daughter because they are male!
+
+> facts
+=== Known Facts ===
+Parent relationships:
+  John is a parent of Mary
+  Sarah is a parent of Mary
+Males:
+  John
+Females:
+  Sarah
+
+> exit
+Goodbye!
+```
+
+## Limitations
+
+- Names must be single words (use "MaryJane" instead of "Mary Jane")
+- Cannot handle ambiguous relationships without additional context
+- Requires explicit parent-child relationships to infer other relationships
+- No persistent storage (facts are lost when program ends)
